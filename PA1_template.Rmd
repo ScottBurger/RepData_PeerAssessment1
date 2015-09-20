@@ -1,0 +1,112 @@
+---
+title: "Coursera RMD Project 1"
+author: "Scott Burger"
+date: "Friday, September 18, 2015"
+output: html_document
+---
+
+
+
+
+**Calculate the total number of steps taken per day**
+```{r}
+data <- read.table("C:/Users/v-scburg/Desktop/repdata/activity.csv", sep=",", header=T)
+steps_by_date <- split(data, data$date)
+total_steps <- sapply(steps_by_date, function(x){sum(x[, c("steps")])})
+date <- unique(data$date)
+total_steps_df <- data.frame(total_steps)
+total_steps_df
+```
+
+**Make a histogram of the total number of steps taken each day**
+```{r}
+hist(total_steps)
+```
+
+**Calculate and report the mean and median of the total number of steps taken per day**
+```{r}
+mean(na.omit(total_steps_df$total_steps))
+median(na.omit(total_steps_df$total_steps))
+```
+
+**Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)**
+```{r}
+fulldata <- na.omit(data)
+series <- data.frame(unique(data$interval))
+steps_by_interval <- split(fulldata, data$interval)
+interval_steps <- sapply(steps_by_interval, function(x){mean(x[, c("steps")])})
+interval_steps_df <- data.frame(interval_steps)
+interval_steps_df$interval <- row.names(interval_steps_df)
+plot(interval_steps_df$interval, interval_steps_df$interval_steps, type="l")
+```
+
+**Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)**
+```{r}
+table(is.na(data$steps))[2]
+```
+
+**Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.**
+
+Here I'm looking for an element that has NA steps logged. I then look at what time interval it is at, and look at a reference data frame that has all the averages for any given time interval. I then replace the NA value with the averaged interval step count value. 
+
+**Create a new dataset that is equal to the original dataset but with the missing data filled in.**
+```{r}
+
+for(i in 1:length(data$steps)){
+  if(is.na(data$steps[i])){
+    data$steps[i] <- interval_steps_df$interval_steps[interval_steps_df$interval==data$interval[i]]   
+  }
+}
+
+data_original <- read.table("C:/Users/v-scburg/Desktop/repdata/activity.csv", sep=",", header=T)
+```
+
+**Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?**
+
+The mean and median are the same as before by design. the tradeoff is that the distribution is taller in the middle, since the NA values are resampled with the average step data intervals. This resampling adds more data to the central peak of the histogram, but the overall shape is more or less preserved. You will notice the peak for this plot is at about 35, whereas the plot with just the NA values removed peaks at about 25.
+
+```{r}
+steps_by_date <- split(data, data$date)
+total_steps <- sapply(steps_by_date, function(x){sum(x[, c("steps")])})
+hist(total_steps)
+mean(na.omit(total_steps_df$total_steps)) #original: 10766.19
+median(na.omit(total_steps_df$total_steps)) #original: 10765
+```
+
+
+
+
+**Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.**
+```{r}
+library(chron)
+data$isweekend <- is.weekend(data$date)
+```
+
+**Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.**
+
+As a consequence of the NA resampling method I laid out earlier, these plots look exactly the same. This is because each point plotted is an average value. Since the data frame with the NA values fixed should have the same averages across time intervals as the NA omitted data set, having the two graphs come out identical is expected. What is lost here is the information associated with data point counts, as evidenced by the second histogram above. We don't see a higher amount of data points here because of the design of the plot.
+
+```{r}
+fulldata <- na.omit(data)
+series <- data.frame(unique(data$interval))
+steps_by_interval <- split(fulldata, data$interval)
+interval_steps <- sapply(steps_by_interval, function(x){mean(x[, c("steps")])})
+interval_steps_df <- data.frame(interval_steps)
+interval_steps_df$interval <- row.names(interval_steps_df)
+
+fulldata_original <- na.omit(data_original)
+steps_by_interval_original <- split(fulldata_original, data$interval)
+interval_steps_original <- sapply(steps_by_interval_original, function(x){mean(x[, c("steps")])})
+interval_steps_original_df <- data.frame(interval_steps_original)
+interval_steps_original_df$interval <- row.names(interval_steps_original_df)
+
+par(mfrow=c(2,1))
+plot(interval_steps_df$interval, interval_steps_df$interval_steps, type="l")
+plot(interval_steps_original_df$interval, interval_steps_original_df$interval_steps_original, type="l")
+```
+
+
+
+
+
+
